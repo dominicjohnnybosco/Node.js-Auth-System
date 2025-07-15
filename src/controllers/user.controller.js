@@ -1,5 +1,6 @@
 const User = require('../models/user.schema');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const saltRounds = 10; // The number of times our password should be hashed. I can change the value from 10 to something higher for more security
 
 
@@ -25,11 +26,20 @@ const register = async(req, res) => {
         // Hash the password 
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+        // Create the Payload to store the user's details
+        const payload = {
+            email: email
+        };
+
+        // Create jwt for new user
+        const token = await jwt.sign( payload , process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRATION});
+
         // create new user
         const newUser = new User({
             name,
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            token
         });
 
         await newUser.save();
@@ -64,7 +74,17 @@ const login = async (req, res) => {
             return res.status(401).json({message: 'Invalid Credentials'});
         }
 
-        return res.status(200).json({message: 'User Logged In Successfully', user});
+        //creating the payload to store the user's details 
+        const payload = {
+            id: user._id,
+            email: user.email
+        };
+
+        //giving jwt to the user
+        const token = await jwt.sign( payload , process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRATION});
+
+        return res.status(200).json({message: 'User Logged In Successfully', token});
+
     } catch (error) {
         console.log(error);
         return res.status(500).json({message: 'Internal Server Error', error});
@@ -121,3 +141,7 @@ module.exports = {
     makeAdmin,
     removeAdmin
 };
+
+// learn about 
+// markdown language
+// video-streaming with Nodejs
