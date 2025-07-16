@@ -91,55 +91,10 @@ const login = async (req, res) => {
     }
 }
 
-// function to make a user an Admin
-const makeAdmin = async (req, res) => {
-    const { userId } = req.params;
-    try {
-        // find user using id
-        const user = await User.findById( userId );
-
-        // check if user exists in the Database
-        if(!user) {
-            return res.status(404).json({message: "User not found"});
-        }
-
-        // make the user admin if found
-        user.isAdmin = true;
-        await user.save();
-
-        return res.status(200).json({message: "User is made an admin successfully", user});
-
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({message: "Internal Server Error", error});
-    }
-}
-
-// function to remove the admin priviledge given to a user
-const removeAdmin = async (req, res) => {
-    const { userId } = req.params;
-    try {
-        const admin = await User.findById( userId );
-
-        if(admin.isAdmin == false) {
-            return res.status(200).json({message: "This User is not an Admin No Action is needed"});
-        }else{
-            admin.isAdmin = false;
-            await admin.save();
-            return res.status(200).json({message: "This User is no longer an Admin"});
-        }
-        
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({message: "Internal Server Error", error});
-    }
-}
 
 module.exports = { 
     register, 
-    login, 
-    makeAdmin,
-    removeAdmin
+    login
 };
 
 // learn about 
