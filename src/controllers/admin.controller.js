@@ -1,5 +1,6 @@
 const Admin = require('../models/admin.schema');
 const User = require('../models/user.schema');
+const Car = require('../models/car.schema');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const saltRounds = 10;
@@ -206,6 +207,107 @@ const removeSuperAdmin = async (req, res) => {
     }
 }
 
+// function for admin to add a car
+const addCar = async (req, res) => {
+    const { make, model, year, price, description, color, brand } = req.body;
+    try {
+        // Validate input fields
+        if (!make || !model || !year ||!price ||!description || !color ||!brand) {
+            return res.status(400).json({message: 'All input fields are required'});
+        }
+        const newCar = new Car({
+            make,
+            model, 
+            year,
+            price,
+            description,
+            color,
+            brand
+        });
+
+        await newCar.save();
+        return res.status(201).json({message: 'New Car Added Successfully', newCar});
+
+    } catch (error) {
+       console.log(error);
+       return res.status(500).json({message: 'Internal Server Error'}); 
+    }
+}
+
+// function to Get All Cars
+const getAllCars = async (req, res) => {
+    try {
+        const cars = await Car.find();
+        if(cars.length <= 0) {
+            return res.status(200).json({message: 'There Are No Cars Available Now'});
+        }
+        return res.status(200).json({message: 'All Available Cars',cars});
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message: 'Internal Server Error'});
+    }
+}
+
+// function for admin to edit a car
+const editCar = async (req, res) => {
+    const { carId } = req.params;
+    const { make, model, year, price, description, color, brand } = req.body;
+    try {
+        const car = await Car.findById(carId);
+        if(!car) {
+            return res.status(400).json({message: 'Car Not Found'});
+        }
+        // Update Car Details
+        car.make = make || car.make;
+        car.model = model || car.model;
+        car.year = year || car.year; 
+        car.price = price || car.price;
+        car.description = description || car.description;
+        car.color = color || car.color; 
+        car.brand = brand || car.brand;
+        await car.save();
+        return res.status(200).json({message: 'Car Updated Successfully', car});
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message: 'Internal Server Error'});
+    }
+}
+
+// function for admin to delete a car
+const deleteCar = async (req, res) => {
+    const { carId } = req.params;
+    try {
+        const car = await Car.findByIdAndDelete( carId );
+        if(!car) {
+            return res.status(400).json({message: 'Car Not Found'});
+        }else {
+            await car.delete;
+            return res.status(200).json({message: 'Car Deleted Sucessfully'});
+        }
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message: 'Internal Server Error'})
+    }
+}
+
+// function to search for cars by make
+const searchCar = async (req, res) => {
+    const { make } = req.query;
+    try{
+        const car = await Car.find({ 
+            make:{ $regex: new RegExp(make, 'i') }
+        });
+        if(!car) {
+            return res.status(400).json({message: 'No Car Found with this make'});
+        }
+        return res.status(200).json({message: 'Successfully Retrieved Car', car});
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message: 'Internal Server Error'});
+    }
+}
+
+
 module.exports = {
     register,
     login, 
@@ -214,4 +316,9 @@ module.exports = {
     makeSuperAdmin,
     removeSuperAdmin,
     deleteUserAccount,
+    addCar,
+    deleteCar,
+    getAllCars,
+    editCar,
+    searchCar,
 }
