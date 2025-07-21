@@ -43,10 +43,11 @@ const rentCar = async (req, res) => {
         rentCar.totalPrice = totalPrice;
         rentCar.carStatus = "pending";
         await rentCar.save();
+        
         return res.status(200).json({message: `Car Rented Successfully for ${rentalDays} Days and charged ${totalPrice}`, rentCar});
     } catch (error) {
         console.log(error);
-        return res.status(500).json({message: 'Internal Server Error', error});
+        return res.status(500).json({message: 'Internal Server Error'});
     }
 }
 
