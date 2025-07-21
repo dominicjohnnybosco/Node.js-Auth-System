@@ -1,4 +1,4 @@
-const rent = require('../models/rental.schema');
+const Rental = require('../models/rental.schema');
 const Car = require('../models/car.schema');
 
 const rentCar = async (req, res) => {
@@ -7,48 +7,62 @@ const rentCar = async (req, res) => {
     const { startDate, endDate } = req.body;
 
     try {
-        // find the car by Id
-        const car = await Car.findById( carId );
-        if(!car) {
-            return res.status(404).json({message: 'Car Not Found'});
+        // Find the car
+        const car = await Car.findById(carId);
+        if (!car) {
+            return res.status(404).json({ message: 'Car not found' });
         }
-        // check if the car is available
-        if(car.isAvailable == false) {
-            return res.status(400).json({message: 'Car is not available at this moment'});
-        }
-
-        const rentCar = await rent.find()
-        // check if the car is already rented by someone else
-        if(rentCar.isRented) {
-            return res.status(400).json({message: 'Car is already rented'});
+        // Check if car is available
+        if (!car.isAvailable) {
+            return res.status(400).json({ message: 'Car is not available at this moment' });
         }
 
-        // update the car's rental status
-        rentCar.isRented = true;
-        rentCar.rentedBy = userId;
-        rentCar.startDate = startDate;
-        rentCar.endDate = endDate;
+        // Check if the car is already rented by someone else
+        const activeRental = await Rental.findOne({ carId, isRented: true });
+        if (activeRental) {
+            return res.status(400).json({ message: 'Car is already rented' });
+        }
+
+        // Calculate rental days and total price
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        // Check for invalid date 
+        if (isNaN(start) || isNaN(end) || end <= start) {
+            return res.status(400).json({ message: 'Invalid rental dates' });
+        }
+
+        // RENTAL_DAY_IN_MS: constant for converting milliseconds to days
+        const msInDay = 1000 * 60 * 60 * 24;
+        const rentalDays = Math.ceil((end - start) / msInDay);
         
-        // set car schema (car.isAvailable) to false
-        car.isAvailable = false;
-
         // calculation for the amount the user is going to pay for the period of days they are renting the car
-        const millisecondsInDay = 1000 * 60 * 60 * 24;
-        const rentalDays = Math.ceil((endDate - startDate) / millisecondsInDay);
-
-        // amount to charge for each day the user is with the car
         const dailyRate = 50000; // 50k per day
         const totalPrice = rentalDays * dailyRate;
 
-        rentCar.totalPrice = totalPrice;
-        rentCar.carStatus = "pending";
-        await rentCar.save();
-        
-        return res.status(200).json({message: `Car Rented Successfully for ${rentalDays} Days and charged ${totalPrice}`, rentCar});
+        // Create rental record
+        const newRental = await Rental.create({
+            carId,
+            rentedBy: userId,
+            startDate: start,
+            endDate: end,
+            isRented: true,
+            totalPrice,
+            carStatus: 'pending'
+        });
+
+        // Update car availability
+        car.isAvailable = false;
+        await car.save();
+
+        return res.status(201).json({
+            message: `Car rented successfully for ${rentalDays} days. Total charge: ₦${totalPrice}`,
+            rental: newRental
+        });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({message: 'Internal Server Error'});
+        console.error(error);
+        return res.status(500).json({ message: 'Internal server error' });
     }
-}
+};
 
 module.exports = { rentCar };
