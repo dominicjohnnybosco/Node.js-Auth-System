@@ -7,7 +7,7 @@ const rentalSchema = new mongoose.Schema({
         required: true,
     },
 
-    userId: {
+    rentedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
@@ -33,7 +33,12 @@ const rentalSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'confirmed', 'cancelled'],
         default: 'pending'
-    } 
+    },
+
+    isRented: {
+        type: Boolean,
+        default: false
+    },
 }, {
     timestamps: true,
     versionKey: false
