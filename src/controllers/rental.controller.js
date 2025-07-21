@@ -1,4 +1,5 @@
 const rent = require('../models/rental.schema');
+const Car = require('../models/car.schema');
 
 const rentCar = async (req, res) => {
     const { carId } = req.params;
@@ -7,7 +8,7 @@ const rentCar = async (req, res) => {
 
     try {
         // find the car by Id
-        const car = await rent.findById( carId );
+        const car = await Car.findById( carId );
         if(!car) {
             return res.status(404).json({message: 'Car Not Found'});
         }
