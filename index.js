@@ -5,6 +5,7 @@ const connectDB = require('./src/config/db');
 const userRouter = require('./src/routes/user.route');
 const adminRouter = require('./src/routes/admin.route');
 const carRouter = require('./src/routes/car.route');
+const rentalRouter = require('./src/routes/rental.route');
 
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.get('/', (req, res) => {
 app.use('/api/users', userRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/admin/cars', carRouter);
+app.use('/api/rental', rentalRouter);
 
 app.listen(port, () => {
     connectDB();
