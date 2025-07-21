@@ -1,4 +1,4 @@
-const Car = require('../models/car.schema');
+const rent = require('../models/rental.schema');
 
 const rentCar = async (req, res) => {
     const { carId } = req.params;
@@ -7,7 +7,7 @@ const rentCar = async (req, res) => {
 
     try {
         // find the car by Id
-        const car = await Car.findById( carId );
+        const car = await rent.findById( carId );
         if(!car) {
             return res.status(404).json({message: 'Car Not Found'});
         }
@@ -23,11 +23,11 @@ const rentCar = async (req, res) => {
         }
 
         // update the car's rental status
-        car.isRented = true;
-        car.rentedBy = userId;
-        car.isAvailable = false;
-        car.startDate = startDate;
-        car.endDate = endDate;
+        rent.isRented = true;
+        rent.rentedBy = userId;
+        rent.isAvailable = false;
+        rent.startDate = startDate;
+        rent.endDate = endDate;
 
         // calculation for the amount the user is going to pay for the period of days they are renting the car
         const millisecondsInDay = 1000 * 60 * 60 * 24;
@@ -37,9 +37,9 @@ const rentCar = async (req, res) => {
         const dailyRate = 50000; // 50k per day
         const totalPrice = rentalDays * dailyRate;
 
-        car.totalPrice = totalPrice;
-        car.carStatus = "pending";
-        await car.save();
+        rent.totalPrice = totalPrice;
+        rent.carStatus = "pending";
+        await rent.save();
         return res.status(200).json({message: `Car Rented Successfully for ${rentalDays} Days and charged ${totalPrice}`, car});
     } catch (error) {
         console.log(error);
