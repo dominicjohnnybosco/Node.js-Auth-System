@@ -331,7 +331,7 @@ const searchCar = async (req, res) => {
     }
 }
 
-// Function for admin to approve a rented car
+// Function for admin to approve a rented car request
 const approveRentalCar = async (req, res) => {
     const { rentedCarId } = req.params;
     const adminId = req.user.id;
@@ -363,6 +363,36 @@ const approveRentalCar = async (req, res) => {
     }
 };
 
+// Function to cancel rented car request
+const cancelRentalCar = async (req, res) => {
+    const { rentedCarId } = req.params;
+    const adminId = req.user.id;
+
+    try {
+        // Check if admin exists and has privileges
+        const admin = await Admin.findById(adminId);
+        if (!admin) {
+            return res.status(404).json({ message: 'Admin not found' });
+        }
+        if (admin.isSuper !== true) {
+            return res.status(403).json({ message: 'Only Super Admin can perform this action' });
+        }
+        // Find pending rental by ID
+        const rentedCar = await Rent.findOne({ _id: rentedCarId, carStatus: 'pending' });
+        if (!rentedCar) {
+            return res.status(404).json({ message: 'No pending rental request found with this ID' });
+        }
+
+        // Update status to confirmed
+        rentedCar.carStatus = 'cancelled';
+        await rentedCar.save();
+
+        return res.status(200).json({ message: 'Car rental request have been cancelled', rental: rentedCar });
+    } catch (error) {
+       console.log(error);
+       return res.status(500).json({message: 'Internal Server Error'});
+    }
+}
 
 module.exports = {
     register,
@@ -377,5 +407,6 @@ module.exports = {
     getAllCars,
     editCar,
     searchCar,
-    approveRentalCar
+    approveRentalCar,
+    cancelRentalCar
 }
