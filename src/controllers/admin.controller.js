@@ -345,13 +345,14 @@ const approveRentalCar = async (req, res) => {
 
         const rentedCar = await Rent.findOne( {rentedCarId, carStatus: 'pending'} );
         // Check if there is a pending rental request to approve
-        if (!rentedCar) {
-            return res.status(200).json({message: 'No pending request'})
+        if (rentedCar) {
+            rentedCar.carStatus = 'confirmed';
+            await rentedCar.save();
+            return res.status(200).json({message: 'Car successfully Approved'});
         }
+        
+        return res.status(200).json({message: 'No pending request'})
 
-        rentedCar.carStatus = 'confirmed';
-        await rentedCar.save();
-        return res.status(200).json({message: 'Car successfully Approved'});
     } catch (error) {
         console.log(error);
         return res.status(500).json({message: 'Internal Server Error'});
