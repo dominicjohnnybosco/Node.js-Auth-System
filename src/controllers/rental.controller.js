@@ -12,23 +12,25 @@ const rentCar = async (req, res) => {
         if(!car) {
             return res.status(404).json({message: 'Car Not Found'});
         }
-
-        // check if the car is already rented by someone else
-        if(car.isRented) {
-            return res.status(400).json({message: 'Car is already rented'});
-        }
-
         // check if the car is available
         if(car.isAvailable == false) {
             return res.status(400).json({message: 'Car is not available at this moment'});
         }
 
+        const rentCar = await rent.find()
+        // check if the car is already rented by someone else
+        if(rentCar.isRented) {
+            return res.status(400).json({message: 'Car is already rented'});
+        }
+
         // update the car's rental status
-        rent.isRented = true;
-        rent.rentedBy = userId;
-        rent.isAvailable = false;
-        rent.startDate = startDate;
-        rent.endDate = endDate;
+        rentCar.isRented = true;
+        rentCar.rentedBy = userId;
+        rentCar.startDate = startDate;
+        rentCar.endDate = endDate;
+        
+        // set car schema (car.isAvailable) to false
+        car.isAvailable = false;
 
         // calculation for the amount the user is going to pay for the period of days they are renting the car
         const millisecondsInDay = 1000 * 60 * 60 * 24;
@@ -38,13 +40,13 @@ const rentCar = async (req, res) => {
         const dailyRate = 50000; // 50k per day
         const totalPrice = rentalDays * dailyRate;
 
-        rent.totalPrice = totalPrice;
-        rent.carStatus = "pending";
-        await rent.save();
-        return res.status(200).json({message: `Car Rented Successfully for ${rentalDays} Days and charged ${totalPrice}`, car});
+        rentCar.totalPrice = totalPrice;
+        rentCar.carStatus = "pending";
+        await rentCar.save();
+        return res.status(200).json({message: `Car Rented Successfully for ${rentalDays} Days and charged ${totalPrice}`, rentCar});
     } catch (error) {
         console.log(error);
-        return res.status(500).json({message: 'Internal Server Error'});
+        return res.status(500).json({message: 'Internal Server Error', error});
     }
 }
 
