@@ -1,5 +1,6 @@
 const express = require('express');
-const { register, login, makeAdmin, removeAdmin, makeSuperAdmin, removeSuperAdmin, deleteUserAccount } = require('../controllers/admin.controller');
+const { register, login, makeAdmin, removeAdmin, makeSuperAdmin, removeSuperAdmin, deleteUserAccount, approveRentalCar } = require('../controllers/admin.controller');
+const { isAuthenticated } = require('../middlewares/isAuth');
 const router = express.Router();
 
 router.post('/register', register);
@@ -9,5 +10,6 @@ router.patch('/remove-admin/:userId', removeAdmin);
 router.patch('/make-super-admin/:adminId', makeSuperAdmin);
 router.patch('/remove-super-admin/:adminId', removeSuperAdmin);
 router.delete('/delete-user-account/:userId', deleteUserAccount);
+router.post('/approve-rental-request/:rentedCarId',isAuthenticated, approveRentalCar);
 
 module.exports = router;
