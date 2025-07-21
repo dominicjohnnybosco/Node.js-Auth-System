@@ -1,11 +1,12 @@
 const express = require('express');
 const {getAllCars, addCar, editCar, deleteCar, searchCar} = require('../controllers/admin.controller');
+const { isAuthenticated } = require('../middlewares/isAuth');
 const router = express.Router();
 
 router.get('/get-all-cars', getAllCars);
 router.get('/search-cars', searchCar);
-router.post('/add-car', addCar);
-router.put('/edit-car/:carId', editCar);
-router.delete('/delete-car/:carId', deleteCar);
+router.post('/add-car', isAuthenticated, addCar);
+router.put('/edit-car/:carId', isAuthenticated, editCar);
+router.delete('/delete-car/:carId', isAuthenticated, deleteCar);
 
 module.exports = router;

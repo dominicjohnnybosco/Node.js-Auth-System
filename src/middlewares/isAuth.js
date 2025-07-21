@@ -19,6 +19,7 @@ const isAuthenticated = (req, res, next) => {
             return res.staus(401).json({message: 'Authentication failed: Token verification failed'});
         }
 
+        // this req.user i can change it to req.admin depending on who i want to have access to certain routes in the application
         req.user = decoded;
         next();
 

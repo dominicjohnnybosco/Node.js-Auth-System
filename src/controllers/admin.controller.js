@@ -210,11 +210,20 @@ const removeSuperAdmin = async (req, res) => {
 // function for admin to add a car
 const addCar = async (req, res) => {
     const { make, model, year, price, description, color, brand } = req.body;
+    const adminId = req.user.id;
+    
     try {
         // Validate input fields
         if (!make || !model || !year ||!price ||!description || !color ||!brand) {
             return res.status(400).json({message: 'All input fields are required'});
         }
+
+        // Check if this Admin can perform this function
+        const admin = await Admin.findById(adminId);
+        if (admin.isSuper !== true) {
+            return res.status(403).json({message: 'Only Super Admin Can Perform This Action'});
+        }
+
         const newCar = new Car({
             make,
             model, 
@@ -251,12 +260,20 @@ const getAllCars = async (req, res) => {
 // function for admin to edit a car
 const editCar = async (req, res) => {
     const { carId } = req.params;
+    const adminId = req.user.id;
     const { make, model, year, price, description, color, brand } = req.body;
     try {
+        // Check if admin is priviledge to perform this action
+        const admin = await Admin.findById(adminId);
+        if(admin.isSuper !== true) {
+            return res.status(403).json({message: 'Only Super Admin Can Perform This Action'});
+        }
+
         const car = await Car.findById(carId);
         if(!car) {
             return res.status(400).json({message: 'Car Not Found'});
         }
+
         // Update Car Details
         car.make = make || car.make;
         car.model = model || car.model;
@@ -276,7 +293,13 @@ const editCar = async (req, res) => {
 // function for admin to delete a car
 const deleteCar = async (req, res) => {
     const { carId } = req.params;
+    const adminId = req.user.id;
     try {
+        // Check if admin is priviledge to perform this action
+        const admin = await Admin.findById(adminId);
+        if (admin.isSuper !== true) {
+            return res.status(403).json({message: 'Only Super Admin Can Perform This Action'});
+        }
         const car = await Car.findByIdAndDelete( carId );
         if(!car) {
             return res.status(400).json({message: 'Car Not Found'});

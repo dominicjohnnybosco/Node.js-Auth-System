@@ -91,10 +91,99 @@ const login = async (req, res) => {
     }
 }
 
+// function to send user 
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    // validate input
+    if (!email) {
+        return res.status(400).json({message: 'Email is Required'});
+    }
+    try {
+        // Check if email exists
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({message: 'User Not Found'})
+        }
+
+        // Generate A 6 Digit Otp with math.random()
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // save Otp in DB
+        user.otp = otp;
+        await user.save();
+
+        return res.status(200).json({message: `Password reset OTP sent to ${ email }` });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message: 'Internal Server Error'});
+    }
+}
+
+// function to verify the OTP
+const verifyOTP = async (req, res) => {
+    const { otp } = req.body;
+    try {
+        const user = await User.findOne({ otp: otp});
+        // Check if the otp provided is valid
+        if (!user) {
+            return res.status(400).json({message: 'Invalid OTP'});
+        }
+        user.otpVerified = true;
+        // Clear OTP after verification
+        user.otp = null;
+        await user.save();
+        return res.status(200).json({message: 'OTP Verified Successfully'});
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message: 'Internal Server Error'});
+    }
+}
+
+// function to reset user password
+const resetPassword = async (req, res) => {
+    const { newPassword, confirmPassword } = req.body;
+    const { userId } = req.params;
+
+    // Validate User Input
+    if (!userId || !newPassword) {
+        return res.status(400).json({message: 'User ID and New Password are Required'});
+    }
+
+    // Check if new password is same as confirm password
+    if (newPassword !== confirmPassword) {
+        return res.status(400).json({message: 'Password does not match'});
+    }
+    try {
+        const user = await User.findById({ _id: userId });
+        if (!user) {
+            return res.status(404).json({message: 'User Not Found'});
+        }
+        // Check if the otp is verified
+        if (user.otpVerified !== true) {
+            return res.status(403).json({message: 'OTP not verified, Please Verify Your OTP'});
+        }
+
+        // Hash the new Password
+        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+        user.password = hashedPassword;
+        // Reset OTP Verification status
+        user.otpVerified = false; 
+        await user.save();
+
+        return res.status(200).json({message: 'Password Reset Successfully'});
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message: 'Internal Server Error'});
+    }
+}
+
 
 module.exports = { 
     register, 
-    login
+    login,
+    forgotPassword,
+    verifyOTP, 
+    resetPassword
 };
 
 // learn about 
