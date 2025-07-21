@@ -16,7 +16,7 @@ app.use(morgan('dev'));
 const port = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
-    res.send('Welcome, Happy to use my first authentication system API');
+    res.send('Welcome, Happy to use Dubem Car Rental Services API');
 });
 
 app.use('/api/users', userRouter);
