@@ -11,6 +11,6 @@ router.patch('/make-super-admin/:adminId', makeSuperAdmin);
 router.patch('/remove-super-admin/:adminId', removeSuperAdmin);
 router.delete('/delete-user-account/:userId', deleteUserAccount);
 router.post('/approve-rental-request/:rentedCarId',isAuthenticated, approveRentalCar);
-router.post('/cancle-rental-request/:rentedCarId',isAuthenticated, cancelRentalCar);
+router.post('/cancel-rental-request/:rentedCarId',isAuthenticated, cancelRentalCar);
 
 module.exports = router;
