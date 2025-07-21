@@ -347,10 +347,10 @@ const approveRentalCar = async (req, res) => {
         // Check if there is a pending rental request to approve
         if (rentedCar) {
             rentedCar.carStatus = 'confirmed';
-            await rentedCar.save();
-            return res.status(200).json({message: 'Car successfully Approved'});
         }
         
+        await rentedCar.save();
+        return res.status(200).json({message: 'Car successfully Approved'});
         
 
     } catch (error) {
