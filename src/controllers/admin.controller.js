@@ -351,7 +351,7 @@ const approveRentalCar = async (req, res) => {
             return res.status(200).json({message: 'Car successfully Approved'});
         }
         
-        return res.status(200).json({message: 'No pending request'})
+        
 
     } catch (error) {
         console.log(error);
