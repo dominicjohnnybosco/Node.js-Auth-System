@@ -343,7 +343,7 @@ const approveRentalCar = async (req, res) => {
             return res.status(403).json({message: 'Only Super Admin Can Perform This Action'});
         }
 
-        const rentedCar = await Rent.findOne( {rentedCarId, carStatus: 'pending'} );
+        const rentedCar = await Rent.findOne( {rentedCarId} );
         // Check if there is a pending rental request to approve
         if (rentedCar) {
             rentedCar.carStatus = 'confirmed';
