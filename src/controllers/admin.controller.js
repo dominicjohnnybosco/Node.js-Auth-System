@@ -331,33 +331,38 @@ const searchCar = async (req, res) => {
     }
 }
 
-// function for admin to approved rented car 
+// Function for admin to approve a rented car
 const approveRentalCar = async (req, res) => {
     const { rentedCarId } = req.params;
     const adminId = req.user.id;
 
     try {
-        // Check if admin is priviledge to perform this action
+        // Check if admin exists and has privileges
         const admin = await Admin.findById(adminId);
+        if (!admin) {
+            return res.status(404).json({ message: 'Admin not found' });
+        }
         if (admin.isSuper !== true) {
-            return res.status(403).json({message: 'Only Super Admin Can Perform This Action'});
+            return res.status(403).json({ message: 'Only Super Admin can perform this action' });
         }
 
-        const rentedCar = await Rent.findOne( {rentedCarId, carStatus:'pending'} );
-        // Check if there is a pending rental request to approve
-        if (rentedCar) {
-            rentedCar.carStatus = 'confirmed';
-            await rentedCar.save();
+        // Find pending rental by ID
+        const rentedCar = await Rent.findOne({ _id: rentedCarId, carStatus: 'pending' });
+        if (!rentedCar) {
+            return res.status(404).json({ message: 'No pending rental request found with this ID' });
         }
-        
-        return res.status(200).json({message: 'Car successfully Approved'});
-        
 
+        // Update status to confirmed
+        rentedCar.carStatus = 'confirmed';
+        await rentedCar.save();
+
+        return res.status(200).json({ message: 'Car rental request successfully approved', rental: rentedCar });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({message: 'Internal Server Error'});
+        console.error(error);
+        return res.status(500).json({ message: 'Internal Server Error' });
     }
-}
+};
+
 
 module.exports = {
     register,
