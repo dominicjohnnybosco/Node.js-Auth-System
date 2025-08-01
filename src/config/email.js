@@ -1,4 +1,7 @@
 const nodemailer = require('nodemailer');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 const sendEmail = async (to, subject, text) => {
     try {
@@ -9,13 +12,16 @@ const sendEmail = async (to, subject, text) => {
             secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
             auth: {
                 user: process.env.EMAIL_USER,
-                password: process.env.EMAIL_PASSWORD
+                pass: process.env.EMAIL_PASS
+            },
+            tls: {
+                rejectUnauthorized: false
             }
         });
 
         // Set up email data
         const mailOptions = {
-            from: `${process.env.EMAIL_USER}`, // sender address
+            from: `Dubem Car Rental Service <${process.env.EMAIL_USER}>`, // sender address
             to, // receivers
             subject, // email Subject 
             text, // email text body

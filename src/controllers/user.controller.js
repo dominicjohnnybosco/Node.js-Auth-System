@@ -85,10 +85,12 @@ const login = async (req, res) => {
         };
 
         //giving jwt to the user
+        
         const token = await jwt.sign( payload , process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRATION});
-
+        // Send Login Notification 
+        await sendEmail(email, "Login Notification", `Hello ${user.name}, \n \nYou have successfully logged into your account`);
+        
         return res.status(200).json({message: 'User Logged In Successfully', token});
-
     } catch (error) {
         console.log(error);
         return res.status(500).json({message: 'Internal Server Error', error});
