@@ -1,6 +1,7 @@
 const User = require('../models/user.schema');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const sendEmail = require('../config/email');
 const saltRounds = 10; // The number of times our password should be hashed. I can change the value from 10 to something higher for more security
 
 
@@ -43,6 +44,9 @@ const register = async(req, res) => {
         });
 
         await newUser.save();
+
+        // Send Email
+        await sendEmail(email, "Welcome to our Dubem Car Rental Service", `Hello ${name}, \n\nThankyou for signing up! Your account has been created successfully.\n\nBest regards, \nYour Service Team`); 
 
         return res.status(201).json({message: 'Account Created Successfully', newUser});
 

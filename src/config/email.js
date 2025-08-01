@@ -15,8 +15,8 @@ const sendEmail = async (to, subject, text) => {
 
         // Set up email data
         const mailOptions = {
-            from: `<${process.env.EMAIL_USER}>`,
-            to, // list of receivers
+            from: `${process.env.EMAIL_USER}`, // sender address
+            to, // receivers
             subject, // email Subject 
             text, // email text body
         };
