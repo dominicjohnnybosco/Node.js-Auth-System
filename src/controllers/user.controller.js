@@ -2,7 +2,8 @@ const User = require('../models/user.schema');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const sendEmail = require('../config/email');
+const { sendEmail, sendTemplateEmail } = require('../config/email');
+const emailTemplates = require('../templates/emailTemplates');
 const saltRounds = 10; // The number of times our password should be hashed. I can change the value from 10 to something higher for more security
 
 
@@ -49,8 +50,20 @@ const register = async(req, res) => {
 
         await newUser.save();
 
-        // Send Email with Email token
-        await sendEmail(email, "Welcome to our Dubem Car Rental Service", `Hello ${name}, \n\nThank you for signing up! Your account has been created successfully. Please Verify Your Email with this token ${emailToken}\n\nBest regards, \nYour Service Team`); 
+        // Send Welcome Email with Email token
+        const welcomeTemplate = emailTemplates.welcomeTemplate(name, emailToken);
+        await sendTemplateEmail(
+            email,
+            welcomeTemplate.subject,
+            welcomeTemplate.html,
+            welcomeTemplate.text
+        );
+
+        // await sendEmail(
+        //     email, 
+        //     "Welcome to our Dubem Car Rental Service", 
+        //     `Hello ${name}, \n\nThank you for signing up! Your account has been created successfully. Please Verify Your Email with this token ${emailToken}\n\nBest regards, \nYour Service Team`
+        // ); 
 
         return res.status(201).json({message: 'Account Created Successfully', newUser});
 
@@ -73,6 +86,16 @@ const verifyEmailToken = async (req, res) => {
         user.isVerified = true;
         user.emailToken = null
         await user.save();
+
+        // Send email verification success notification
+        const successTemplate = emailTemplates.emailVerificationSuccessTemplate(user.name);
+        await sendTemplateEmail(
+            user.email,
+            successTemplate.subject,
+            successTemplate.html,
+            successTemplate.text
+        );
+
         return res.status(200).json({message: 'User Email Verified Successfully', user});
     } catch (error) {
         console.log('Error verifying user email', error);
@@ -116,8 +139,22 @@ const login = async (req, res) => {
         //giving jwt to the user
         
         const token = await jwt.sign( payload , process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRATION});
+        
         // Send Login Notification 
-        await sendEmail(email, "Login Notification", `Hello ${user.name}, \n \nYou have successfully logged into your account`);
+        const loginTime = new Date().toLocaleString();
+        const loginTemplate = emailTemplates.loginNotificationTemplate(user.name, loginTime);
+        await sendTemplateEmail(
+            email,
+            loginTemplate.subject,
+            loginTemplate.html,
+            loginTemplate.text
+        );
+
+        // await sendEmail(
+        //     email, 
+        //     "Login Notification", 
+        //     `Hello ${user.name},\n \nYou have successfully logged into your account`
+        // );
         
         return res.status(200).json({message: 'User Logged In Successfully', token});
     } catch (error) {
@@ -146,6 +183,15 @@ const forgotPassword = async (req, res) => {
         // save Otp in DB
         user.otp = otp;
         await user.save();
+
+        // Send OTP email with template
+        const otpTemplate = emailTemplates.forgotPasswordTemplate(user.name, otp);
+        await sendTemplateEmail(
+            email,
+            otpTemplate.subject,
+            otpTemplate.html,
+            otpTemplate.text
+        );
 
         return res.status(200).json({message: `Password reset OTP sent to ${ email }` });
     } catch (error) {
@@ -204,6 +250,15 @@ const resetPassword = async (req, res) => {
         // Reset OTP Verification status
         user.otpVerified = false; 
         await user.save();
+
+        // Send password reset confirmation email
+        const confirmationTemplate = emailTemplates.passwordResetConfirmationTemplate(user.name);
+        await sendTemplateEmail(
+            user.email,
+            confirmationTemplate.subject,
+            confirmationTemplate.html,
+            confirmationTemplate.text
+        );
 
         return res.status(200).json({message: 'Password Reset Successfully'});
     } catch (error) {
