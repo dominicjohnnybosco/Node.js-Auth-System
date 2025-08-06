@@ -4,6 +4,13 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { sendEmail, sendTemplateEmail } = require('../config/email');
 const emailTemplates = require('../templates/emailTemplates');
+const { google } = require('googleapis');
+const { oauth2Client, OAuth2Client } = require('google-auth-library');
+
+
+// Initialize Google OAuth client
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 const saltRounds = 10; // The number of times our password should be hashed. I can change the value from 10 to something higher for more security
 
 
@@ -267,6 +274,244 @@ const resetPassword = async (req, res) => {
     }
 }
 
+// Google OAuth Controller
+
+// Initiate Google OAuth - Generate OAuth URL
+const initiateGoogleAuth = async (req, res) => {
+    try {
+
+        // Create OAuth2 Client
+        const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URL || 'http://localhost:2002/api/auth/google/callback'
+        );
+
+        // Generate the url that will be used for the consent dialog
+        const authorizeUrl = oauth2Client.generateAuthUrl({
+            access_type: 'offline',
+            scope: [
+                'https://www.googleapis.com/auth/userinfo.profile',
+                'https://www.googleapis.com/auth/userinfo.email'
+            ],
+            include_granted_scopes: true,
+            state: JSON.stringify({
+                timestamp: Date.now()
+            })
+        });
+
+        return res.status(200).json({
+            message: 'Google OAuth URL Generated',
+            authUrl: authorizeUrl
+        });
+
+    } catch (error) {
+        console.log("Error Setting Up Google OAuth", error);
+        return res.status(500).json({message: 'Internal Server Error'});
+    }
+}
+
+// Handle Google OAuth Callback
+const handleGoogleCallback = async (req, res) => {
+    const { code, state, error } = req.query;
+    
+    if (error) {
+        return res.status(400).json({message: 'OAuth authorization denied', error});
+    }
+
+    if (!code) {
+        return res.status(400).json({message: 'Authorization code is required'});
+    }
+
+    try {
+        // Create OAuth2 client
+        const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URL || 'http://localhost:2002/api/auth/google/callback'
+        );
+
+        // Exchange authorization code for access token
+        const { tokens } = await oauth2Client.getToken(code);
+        oauth2Client.setCredentials(tokens);
+
+        // Get User Information
+        const oauth2 = google.oauth2({
+            auth: oauth2Client,
+            version: 'v2'
+        });
+
+        const { data } = await oauth2.userinfo.get();
+
+        const {
+            id: googleId,
+            email,
+            name,
+            picture: avatar,
+            verified_email: emailVerified
+        } = data;
+
+        if (!emailVerified) {
+            return res.status(400).json({message: 'Google email not verified'})
+        }
+
+        // Check if user exists with this Google ID
+        let user = await User.findOne({ googleId });
+        let isNewUser = false;
+
+        if(!user) {
+            // Check if a user already signed up normally with this email (regular signup)
+            user = await User.findOne({ email });
+        }
+
+        if (user) {
+            // Link Google account to existing User
+            user.googleId = googleId;
+            user.provider = 'google';
+            user.avatar = avatar;
+            user.isVerified = true; // Ensure Google users are verified
+            await user.save();
+        } else {
+            // Create new User with Google OAuth
+            user = new User({
+                name,
+                email,
+                googleId,
+                provider: 'google',
+                avatar,
+                isVerified: true // Google accounts are pre-verified
+            });
+            await user.save();
+            isNewUser = true;
+
+            // Send Welcome email for new Google Users
+            const welcomeTemplate = emailTemplates.googleWelcomeTemplate(name);
+            await sendTemplateEmail(
+                email,
+                welcomeTemplate.subject,
+                welcomeTemplate.html,
+                welcomeTemplate.text
+            );
+        }
+
+        // Generate JWT token
+        const jwtPayload = {
+            id: user._id,
+            email: user.email,
+            provider: user.provider
+        };
+        
+        const token = await jwt.sign(jwtPayload, process.env.JWT_SECRET, {expiresIn: process.env.JWT_EXPIRATION});
+
+        // Send Login notification (only for existing users)
+        if (!isNewUser) {
+            const loginTime = new Date().toLocaleString();
+            const loginTemplate = emailTemplates.loginNotificationTemplate(user.name, loginTime);
+            await sendTemplateEmail(
+                email,
+                loginTemplate.subject,
+                loginTemplate.html,
+                loginTemplate.text
+            );
+        }
+        return res.status(200).json({
+            message: 'Google Authentication Successful',
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                avatar: user.avatar,
+                provider: user.provider,
+                isVerified: user.isVerified
+            }
+        });
+    } catch (error) {
+        console.log('Google OAuth callback error:', error);
+        return res.status(500).json({message: 'Google Authentication Failed'});
+    }
+}
+
+// Unlink Google Account
+const unlinkGoogle = async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({message: 'User Not Found'});
+        }
+
+        if (user.provider === 'google' && !user.password) {
+            return res.status(400).json({
+                message: 'Cannot unling Google Account without setting a user password first'
+            });
+        }
+
+        // Remove Google Association
+        user.googleId = undefined;
+        user.provider = 'local';
+        user.avatar = undefined;
+        await user.save();
+
+        return res.status(200).json({message: 'Google Account Unlinked Successfully'});
+    } catch (error) {
+        console.log("Error unlinking Google Account:", error );
+        return res.status(500).json({message: 'Internal Server Error'});
+    }
+}
+
+// Set password for Google Users Who want to add local authentication
+const setPasswordForGoogleUser = async (req, res) => {
+    const { userId } = req.params;
+    const { password, confirmPassword } = req.body;
+
+    if (!password || !confirmPassword) {
+        return res.status(400).json({message: 'Password and Confirm Password field are requiried'});
+    }
+
+    if (password !== confirmPassword) {
+        return res.status(400).json({message: 'Passwords does not match'});
+    }
+
+    if (password.length < 6) {
+        return res.status(400).json({ message: 'Password must be at least 6 characters long'});
+    }
+
+    try {
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User Not Found'});
+        }
+
+        if (user.provider !== 'google') {
+            return res.status(400).json({ message: 'This Endpoint is only for Google Authenticated Users'});
+        }
+
+        // Hash And Set Password
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        user.password = hashedPassword;
+        await user.save();
+
+        // Send Confirmation Email
+        const confirmationTemplate = emailTemplates.passwordSetConfirmationTemplate(user.name);
+        await sendTemplateEmail(
+            user.email,
+            confirmationTemplate.subject,
+            confirmationTemplate.html,
+            confirmationTemplate.text
+        );
+
+        return res.status(200).json({ message: 'Password Set Successfully. You can now use both Google and Email/Password Login.'});
+    } catch (error) {
+        console.log('Error Setting Password For Google User', error);
+        return res.status(500).json({ message: 'Internal Server Error'});
+
+    }
+    
+}
 
 module.exports = { 
     register, 
@@ -274,7 +519,11 @@ module.exports = {
     forgotPassword,
     verifyOTP, 
     resetPassword,
-    verifyEmailToken
+    verifyEmailToken,
+    initiateGoogleAuth,
+    handleGoogleCallback,
+    unlinkGoogle,
+    setPasswordForGoogleUser
 };
 
 // learn about 
