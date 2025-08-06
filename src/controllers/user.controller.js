@@ -1,6 +1,7 @@
 const User = require('../models/user.schema');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { v4: uuidv4 } = require('uuid');
 const sendEmail = require('../config/email');
 const saltRounds = 10; // The number of times our password should be hashed. I can change the value from 10 to something higher for more security
 
@@ -35,23 +36,46 @@ const register = async(req, res) => {
         // Create jwt for new user
         const token = await jwt.sign( payload , process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRATION});
 
+        // Generate the Email Token 
+        const emailToken = uuidv4();
         // create new user
         const newUser = new User({
             name,
             email,
             password: hashedPassword,
-            token
+            token,
+            emailToken: emailToken
         });
 
         await newUser.save();
 
-        // Send Email
-        await sendEmail(email, "Welcome to our Dubem Car Rental Service", `Hello ${name}, \n\nThankyou for signing up! Your account has been created successfully.\n\nBest regards, \nYour Service Team`); 
+        // Send Email with Email token
+        await sendEmail(email, "Welcome to our Dubem Car Rental Service", `Hello ${name}, \n\nThank you for signing up! Your account has been created successfully. Please Verify Your Email with this token ${emailToken}\n\nBest regards, \nYour Service Team`); 
 
         return res.status(201).json({message: 'Account Created Successfully', newUser});
 
     } catch (error) {
         console.log('Error Creating User', error);
+        return res.status(500).json({message: 'Internal Server Error'});
+    }
+}
+
+const verifyEmailToken = async (req, res) => {
+    const  token  = req.params.token;
+    if(!token) {
+        return res.status(400).json({message: 'No Token'});
+    }
+    try {
+        const user = await User.findOne({ emailToken: token });
+        if(!user) {
+            return res.status(404).json({message: 'No User Found With This Token'});
+        }
+        user.isVerified = true;
+        user.emailToken = null
+        await user.save();
+        return res.status(200).json({message: 'User Email Verified Successfully', user});
+    } catch (error) {
+        console.log('Error verifying user email', error);
         return res.status(500).json({message: 'Internal Server Error'});
     }
 }
@@ -68,6 +92,11 @@ const login = async (req, res) => {
         const user = await User.findOne({ email });
         if(!user){
             return res.status(404).json({message: 'User not found'});
+        }
+
+        //check if the user email is verified 
+        if(!user.isVerified) {
+            return res.status(401).json({message: 'Please Verify Your Email'});
         }
 
         //compare hasded password and user input password
@@ -189,7 +218,8 @@ module.exports = {
     login,
     forgotPassword,
     verifyOTP, 
-    resetPassword
+    resetPassword,
+    verifyEmailToken
 };
 
 // learn about 
