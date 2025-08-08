@@ -7,6 +7,7 @@ const flutterwaveWebhook = async (req, res) => {
     try {
         // Flutterwave sends events as POST JSON
         const event = req.body;
+        console.log(event);
 
         // Validate event 
         if (!event || !event.data ||!event.data.tx_ref) {
