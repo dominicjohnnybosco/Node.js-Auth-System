@@ -58,6 +58,6 @@ const flutterwaveWebhook = async (req, res) => {
         console.log('Flutterwave Webhook Error:', error);
         return res.status(500).json({ message: 'Internal Server Error'});
     }
-}
+};
 
-module.exports = flutterwaveWebhook;
+module.exports = { flutterwaveWebhook };

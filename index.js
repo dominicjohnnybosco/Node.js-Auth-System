@@ -7,6 +7,7 @@ const adminRouter = require('./src/routes/admin.route');
 const carRouter = require('./src/routes/car.route');
 const rentalRouter = require('./src/routes/rental.route');
 const flutterwaveRouter = require('./src/routes/flutterwave.route');
+// const flutterwaveRouter = require('./src/routes/flutterwave.route')
 
 
 dotenv.config();
