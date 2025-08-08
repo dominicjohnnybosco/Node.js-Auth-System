@@ -26,7 +26,7 @@ const flutterwaveWebhook = async (req, res) => {
         }
 
         // Check Payment Status
-        if (event.data.tx_status === 'successful' && event.data.amount >= transaction.amount) {
+        if (event.data.status === 'successful' && event.data.amount >= transaction.amount) {
             transaction.tx_status = 'successful';
             await transaction.save();
 
