@@ -41,7 +41,7 @@ const flutterwaveWebhook = async (req, res) => {
                 
                 // Rental status
                 rental.isRented = true;
-                rental.rentedBy = transaction.sendId;
+                rental.rentedBy = transaction.senderId;
                 rental.startDate = transaction.startDate;
                 rental.endDate = transaction.endDate;
                 rental.totalPrice = transaction.amount;
