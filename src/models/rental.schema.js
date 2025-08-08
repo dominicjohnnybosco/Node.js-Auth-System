@@ -16,12 +16,12 @@ const rentalSchema = new mongoose.Schema({
 
     startDate: {
         type: Date,
-        required: true
+        required: [true, 'StartDate is required']
     },
 
     endDate: {
         type: Date,
-        required: true
+        required: [true, 'EndDate is required']
     },
 
     totalPrice: {

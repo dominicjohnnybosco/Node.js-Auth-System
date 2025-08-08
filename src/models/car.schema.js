@@ -3,25 +3,25 @@ const mongoose = require('mongoose');
 const carSchema = new mongoose.Schema({
     make: {
         type: String,
-        required: true,
+        required: [true, 'Car Make is required'],
         trim: true,
     },
 
     model: {
         type: String,
-        required: true,
+        required: [true, 'Car Model is required'],
         trim: true
     },
 
     year: {
         type: Number,
-        required: true,
+        required: [true, 'Car Year is required'],
         min: 1886
     },
 
     price: {
         type: Number,
-        required: true,
+        required: [true, 'Car Price is required'],
         min: 0
     },
 
