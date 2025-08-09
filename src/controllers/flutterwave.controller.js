@@ -5,9 +5,16 @@ const Rental = require('../models/rental.schema');
 // Flutterwave webhook handler
 const flutterwaveWebhook = async (req, res) => {
     try {
+
+        // Verify Flutterwave signature
+        const secretHash = process.env.FLW_HASH;
+        const signature = req.headers['verif-hash'];
+        if (!signature || signature !== secretHash) {
+            return res.status(401).json({ message: 'Invalid Signature' });
+        }
+
         // Flutterwave sends events as POST JSON
         const event = req.body;
-        // console.log(event);
 
         // Validate event 
         if (!event || !event.data ||!event.data.tx_ref) {
@@ -33,12 +40,14 @@ const flutterwaveWebhook = async (req, res) => {
 
             // Update car availability and Rental status
             const car = await Car.findById(transaction.carId);
-            const rental = await Rental.findById(transaction.carId);
-            if (car || rental) {
+            if (car) {
                 // Car availability status
                 car.isAvailable = false;
                 await car.save();
-                
+            }
+
+            const rental = await Rental.findById(transaction.carId);
+            if (rental) {
                 // Rental status
                 rental.isRented = true;
                 rental.rentedBy = transaction.senderId;
