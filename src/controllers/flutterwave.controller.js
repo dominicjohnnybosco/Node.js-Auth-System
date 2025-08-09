@@ -5,14 +5,6 @@ const Rental = require('../models/rental.schema');
 // Flutterwave webhook handler
 const flutterwaveWebhook = async (req, res) => {
     try {
-
-        // Verify Flutterwave signature
-        const secretHash = process.env.FLW_HASH;
-        const signature = req.headers['verif-hash'];
-        if (!signature || signature !== secretHash) {
-            return res.status(401).json({ message: 'Invalid Signature' });
-        }
-
         // Flutterwave sends events as POST JSON
         const event = req.body;
 
