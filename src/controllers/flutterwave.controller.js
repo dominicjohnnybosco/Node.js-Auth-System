@@ -20,12 +20,6 @@ const flutterwaveWebhook = async (req, res) => {
             return res.status(404).json({message: 'Transaction Not Found'});
         }
 
-        if (transaction) {
-            transaction.tx_status = 'successful';
-            await transaction.save();
-            return res.status(200).json({ message: 'Transaction Status is successful'});
-        }
-
         // Only Process if not already successful
         if (transaction.tx_status === 'successful') {
             return res.status(200).json({ message: 'Already Processed'});
@@ -36,16 +30,16 @@ const flutterwaveWebhook = async (req, res) => {
             transaction.tx_status = 'successful';
             await transaction.save();
 
-            console.log(transaction.tx_status);
-
             // Update car availability and Rental status
             const car = await Car.findById(transaction.carId);
-            const rental = await Rental.findById(transaction.carId);
-            if (car || rental) {
+            if (car) {
                 // Car availability status
                 car.isAvailable = false;
                 await car.save();
-                
+            }
+
+            const rental = await Rental.findById(transaction.carId);
+            if (rental) {
                 // Rental status
                 rental.isRented = true;
                 rental.rentedBy = transaction.senderId;
