@@ -7,6 +7,7 @@ const adminRouter = require('./src/routes/admin.route');
 const carRouter = require('./src/routes/car.route');
 const rentalRouter = require('./src/routes/rental.route');
 const flutterwaveRouter = require('./src/routes/flutterwave.route');
+const cors = require('cors');
 // const flutterwaveRouter = require('./src/routes/flutterwave.route')
 
 
@@ -15,6 +16,9 @@ const app = express();
  
 app.use(express.json());
 app.use(morgan('dev'));
+
+//imported my frontend cors
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 
 const port = process.env.PORT || 3000;
 

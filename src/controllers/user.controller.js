@@ -2,10 +2,11 @@ const User = require('../models/user.schema');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const { sendEmail, sendTemplateEmail } = require('../config/email');
+const { sendTemplateEmail } = require('../config/email');
 const emailTemplates = require('../templates/emailTemplates');
 const { google } = require('googleapis');
 const { oauth2Client, OAuth2Client } = require('google-auth-library');
+const { deleteImage } = require('../config/cloudinary');
 
 
 // Initialize Google OAuth client
@@ -513,6 +514,64 @@ const setPasswordForGoogleUser = async (req, res) => {
     
 }
 
+// Upload Profile Picture
+const uploadProfilePicture = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({message: 'No Image File Provided'});
+        }
+
+        const userId = req.user.id;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(400).json({message: 'User Not Found'});
+        }
+
+        // Delete old profile picture if exists
+        if (user.profilePicture?.publicId) {
+            try {
+                await deleteImage(user.profilePicture.publicId);
+            } catch (error) {
+                console.log('Error Deleting Old Profile Picture:', error);
+            }
+        }
+
+        // Update User with new profile picture
+        user.profilePicture = {
+            url: req.file.path,
+            publicId: req.file.filename,
+            uploadedAt: new Date()
+        };
+
+        // Also update the avatar field for backward compatibility
+        user.avatar = req.file.path;
+
+        await user.save();
+
+        return res.status(200).json({
+            message: 'Profile Picture Uploaded Successfully',
+            profilePicture: {
+                url: user.profilePicture.url,
+                uploadedAt: user.profilePicture.uploadedAt
+            }
+        });
+
+    } catch (error) {
+        console.log('Error Uploading Profile Picture:', error);
+        return res.status(500).json({message: 'Internal Server Error'});
+    }
+}
+
+// Function To Get User Profile (Including Profile Picture)
+// const getUserProfile = async (req, res) => {
+//     try {
+        
+//     } catch (error) {
+        
+//     }
+// }
+
 module.exports = { 
     register, 
     login,
@@ -523,7 +582,8 @@ module.exports = {
     initiateGoogleAuth,
     handleGoogleCallback,
     unlinkGoogle,
-    setPasswordForGoogleUser
+    setPasswordForGoogleUser,
+    uploadProfilePicture
 };
 
 // learn about 

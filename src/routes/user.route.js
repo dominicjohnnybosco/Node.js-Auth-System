@@ -1,5 +1,7 @@
 const express = require('express');
-const { register, login, forgotPassword, verifyOTP, resetPassword, verifyEmailToken, initiateGoogleAuth, handleGoogleCallback, unlinkGoogle, setPasswordForGoogleUser } = require('../controllers/user.controller');
+const { register, login, forgotPassword, verifyOTP, resetPassword, verifyEmailToken, initiateGoogleAuth, handleGoogleCallback, unlinkGoogle, setPasswordForGoogleUser, uploadProfilePicture } = require('../controllers/user.controller');
+const { isAuthenticated } = require('../middlewares/isAuth');
+const { upload } = require('../config/cloudinary');
 const router = express.Router();
 
 // Regular Authentication Routes
@@ -15,5 +17,8 @@ router.get('/google', initiateGoogleAuth);
 router.get('/google/callback', handleGoogleCallback);
 router.delete('/unlink-google/:userId', unlinkGoogle);
 router.post('/set-password/:userId', setPasswordForGoogleUser);
+
+// Profile Management Routes (Protected)
+router.post('/profile/picture', isAuthenticated, upload.single('profilePicture'), uploadProfilePicture );
 
 module.exports = router;
